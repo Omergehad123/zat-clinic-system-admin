@@ -10,6 +10,9 @@ import {
 import { useUIStore } from '../../../store/useUIStore';
 import { ROLE_LABELS } from '../../../utils/permissions';
 import AddUserModal from '../../../components/modals/AddUserModal';
+import EditUserModal from '../../../components/modals/EditUserModal';
+import ChangeBranchModal from '../../../components/modals/ChangeBranchModal';
+import DeleteUserModal from '../../../components/modals/DeleteUserModal';
 import ResetPasswordModal from '../../../components/modals/ResetPasswordModal';
 import { 
   UserCog, 
@@ -19,7 +22,11 @@ import {
   KeyRound, 
   Power, 
   Building2, 
-  Filter 
+  Filter,
+  Pencil,
+  Trash2,
+  GitFork,
+  UserPlus
 } from 'lucide-react';
 
 export default function UserManagementPage() {
@@ -42,7 +49,8 @@ export default function UserManagementPage() {
   const handleToggleStatus = async (id, name) => {
     try {
       const res = await toggleUserStatusMutation.mutateAsync(id);
-      showToast(`تم ${res.status === 'معطل' ? 'تعطيل' : 'تفعيل'} حساب "${name}" بنجاح`);
+      const isNowInactive = res.status === 'inactive' || res.status === 'معطل';
+      showToast(`تم ${isNowInactive ? 'تعطيل' : 'تفعيل'} حساب "${name}" بنجاح`);
     } catch (err) {
       showToast('حدث خطأ أثناء تغيير حالة المستخدم', 'error');
     }
@@ -92,15 +100,23 @@ export default function UserManagementPage() {
               
               <div className="text-xs text-zinc-400 pt-2 border-t border-zinc-800/60 flex items-center justify-between">
                 <span>المدير:</span>
-                <span className="font-bold text-zinc-200">
+                <span className={`font-bold ${bm.manager ? 'text-zinc-200' : 'text-amber-400'}`}>
                   {bm.manager ? bm.manager.name : 'غير معين'}
                 </span>
               </div>
               
-              {bm.manager && (
+              {bm.manager ? (
                 <div className="text-[11px] text-zinc-500 text-left font-mono dir-ltr truncate">
                   {bm.manager.email}
                 </div>
+              ) : (
+                <button
+                  onClick={() => openModal('ADD_USER', { branchId: bm.branchId, role: 'branch_manager' })}
+                  className="mt-1 w-full py-1.5 px-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  تعيين مدير للفرع
+                </button>
               )}
             </div>
           ))}
@@ -186,35 +202,64 @@ export default function UserManagementPage() {
                   <td className="mono-table-td text-zinc-300">{u.branchName}</td>
                   <td className="mono-table-td">
                     <span className={`px-2 py-0.5 text-[11px] font-bold rounded-full ${
-                      u.status === 'نشط' 
+                      u.status === 'active' || u.status === 'نشط'
                         ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
                         : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                     }`}>
-                      {u.status}
+                      {u.status === 'active' || u.status === 'نشط' ? 'نشط' : 'معطل'}
                     </span>
                   </td>
                   <td className="mono-table-td text-center">
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                      <button
+                        onClick={() => openModal('EDIT_USER', u)}
+                        title="تعديل بيانات المستخدم"
+                        className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white rounded-lg flex items-center gap-1 transition-colors"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        <span>تعديل</span>
+                      </button>
+
+                      <button
+                        onClick={() => openModal('CHANGE_BRANCH', u)}
+                        title="تغيير الفرع المنسوب إليه المستخدم"
+                        className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 hover:border-emerald-500/50 text-zinc-300 hover:text-emerald-400 rounded-lg flex items-center gap-1 transition-colors"
+                      >
+                        <GitFork className="w-3.5 h-3.5" />
+                        <span>الفرع</span>
+                      </button>
+
                       <button
                         onClick={() => openModal('RESET_PASSWORD', u)}
                         title="إعادة تعيين كلمة المرور"
-                        className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 hover:border-zinc-500 text-zinc-300 rounded-lg flex items-center gap-1"
+                        className="px-2 py-1 text-xs bg-zinc-900 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white rounded-lg flex items-center gap-1 transition-colors"
                       >
                         <KeyRound className="w-3.5 h-3.5" />
-                        كلمة السر
+                        <span>كلمة السر</span>
                       </button>
 
                       {u.role !== 'super_admin' && (
                         <button
                           onClick={() => handleToggleStatus(u.id, u.name)}
+                          disabled={toggleUserStatusMutation.isPending}
                           className={`p-1.5 rounded-lg border transition-colors ${
-                            u.status === 'نشط'
-                              ? 'bg-zinc-900 border-zinc-700 text-rose-400 hover:bg-rose-950/40'
-                              : 'bg-emerald-950/40 border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
+                            u.status === 'active' || u.status === 'نشط'
+                              ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
+                              : 'bg-zinc-900 border-zinc-700 text-rose-400 hover:bg-rose-950/40 hover:border-rose-700'
                           }`}
-                          title={u.status === 'نشط' ? 'تعطيل الحساب' : 'تفعيل الحساب'}
+                          title={u.status === 'active' || u.status === 'نشط' ? 'تعطيل الحساب' : 'تفعيل الحساب'}
                         >
                           <Power className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
+                      {u.role !== 'super_admin' && (
+                        <button
+                          onClick={() => openModal('DELETE_USER', u)}
+                          title="حذف حساب المستخدم"
+                          className="p-1.5 bg-zinc-900 border border-zinc-700 hover:border-rose-800 hover:bg-rose-950/30 text-rose-400 rounded-lg flex items-center gap-1 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       )}
                     </div>
@@ -227,6 +272,9 @@ export default function UserManagementPage() {
       </div>
 
       {activeModal === 'ADD_USER' && <AddUserModal />}
+      {activeModal === 'EDIT_USER' && <EditUserModal />}
+      {activeModal === 'CHANGE_BRANCH' && <ChangeBranchModal />}
+      {activeModal === 'DELETE_USER' && <DeleteUserModal />}
       {activeModal === 'RESET_PASSWORD' && <ResetPasswordModal />}
 
     </div>

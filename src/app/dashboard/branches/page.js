@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { useBranches, useBranchManagers, useToggleBranchStatus } from '../../../hooks/useDashboardQueries';
 import { useUIStore } from '../../../store/useUIStore';
 import AddBranchModal from '../../../components/modals/AddBranchModal';
-import { GitFork, Plus, Phone, MapPin, ShieldCheck, ExternalLink, Power } from 'lucide-react';
+import EditBranchModal from '../../../components/modals/EditBranchModal';
+import DeleteBranchModal from '../../../components/modals/DeleteBranchModal';
+import { GitFork, Plus, Phone, MapPin, ShieldCheck, ExternalLink, Power, Pencil, Trash2 } from 'lucide-react';
 
 export default function BranchManagementPage() {
   const { openModal, activeModal, showToast } = useUIStore();
@@ -15,7 +17,8 @@ export default function BranchManagementPage() {
   const handleToggleStatus = async (id, currentName) => {
     try {
       const res = await toggleBranchStatusMutation.mutateAsync(id);
-      showToast(`تم ${res.status === 'معطل' ? 'تعطيل' : 'تفعيل'} الفرع "${currentName}" بنجاح`);
+      const isNowInactive = res.status === 'inactive' || res.status === 'معطل';
+      showToast(`تم ${isNowInactive ? 'تعطيل' : 'تفعيل'} الفرع "${currentName}" بنجاح`);
     } catch (err) {
       showToast('حدث خطأ أثناء تغيير حالة الفرع', 'error');
     }
@@ -51,6 +54,7 @@ export default function BranchManagementPage() {
           <div className="col-span-full py-12 text-center text-zinc-500">جاري تحميل الفروع...</div>
         ) : branches.map(branch => {
           const managerName = branch.manager?.name || (branch.managerName && branch.managerName !== 'لا يوجد مدير' ? branch.managerName : null) || managersInfo.find(m => m.branchId === branch.id)?.manager?.name || 'غير معين';
+          const isActive = branch.status === 'active' || branch.status === 'نشط';
 
           return (
             <div key={branch.id} className="mono-card p-6 space-y-4 flex flex-col justify-between">
@@ -61,11 +65,11 @@ export default function BranchManagementPage() {
                     {branch.code || 'BRANCH'}
                   </span>
                   <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full ${
-                    branch.status === 'نشط' || branch.status === 'active'
+                    isActive
                       ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
                       : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                   }`}>
-                    {branch.status === 'active' ? 'نشط' : (branch.status === 'inactive' ? 'معطل' : branch.status)}
+                    {isActive ? 'نشط' : 'معطل'}
                   </span>
                 </div>
 
@@ -98,22 +102,44 @@ export default function BranchManagementPage() {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-zinc-800 flex items-center justify-between gap-2">
-                <button
-                  onClick={() => handleToggleStatus(branch.id, branch.name)}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors flex items-center gap-1.5 ${
-                    branch.status === 'نشط'
-                      ? 'bg-zinc-900 border-zinc-700 text-rose-400 hover:bg-rose-950/40'
-                      : 'bg-emerald-950/40 border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
-                  }`}
-                >
-                  <Power className="w-3.5 h-3.5" />
-                  {branch.status === 'نشط' ? 'تعطيل' : 'تفعيل'}
-                </button>
+              <div className="pt-4 border-t border-zinc-800 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => handleToggleStatus(branch.id, branch.name)}
+                    disabled={toggleBranchStatusMutation.isPending}
+                    className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition-colors flex items-center gap-1 ${
+                      isActive
+                        ? 'bg-zinc-900 border-zinc-700 text-rose-400 hover:bg-rose-950/40 hover:border-rose-700'
+                        : 'bg-emerald-950/40 border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
+                    }`}
+                    title={isActive ? 'تعطيل الفرع' : 'تفعيل الفرع'}
+                  >
+                    <Power className="w-3.5 h-3.5" />
+                    <span>{isActive ? 'تعطيل' : 'تفعيل'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => openModal('EDIT_BRANCH', branch)}
+                    className="px-2.5 py-1.5 text-xs bg-zinc-900 border border-zinc-700 hover:border-zinc-500 text-zinc-300 rounded-lg flex items-center gap-1 transition-colors"
+                    title="تعديل بيانات الفرع"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span>تعديل</span>
+                  </button>
+
+                  <button
+                    onClick={() => openModal('DELETE_BRANCH', branch)}
+                    className="px-2.5 py-1.5 text-xs bg-zinc-900 border border-zinc-700 hover:border-rose-800 hover:bg-rose-950/30 text-rose-400 rounded-lg flex items-center gap-1 transition-colors"
+                    title="حذف الفرع"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>حذف</span>
+                  </button>
+                </div>
 
                 <Link
                   href={`/dashboard/branches/${branch.id}`}
-                  className="px-3.5 py-1.5 text-xs bg-white text-black font-bold rounded-lg hover:bg-zinc-200 transition-colors flex items-center gap-1"
+                  className="px-3 py-1.5 text-xs bg-white text-black font-bold rounded-lg hover:bg-zinc-200 transition-colors flex items-center gap-1 shrink-0"
                 >
                   التفاصيل
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -126,6 +152,8 @@ export default function BranchManagementPage() {
       </div>
 
       {activeModal === 'ADD_BRANCH' && <AddBranchModal />}
+      {activeModal === 'EDIT_BRANCH' && <EditBranchModal />}
+      {activeModal === 'DELETE_BRANCH' && <DeleteBranchModal />}
 
     </div>
   );

@@ -71,6 +71,18 @@ export const useToggleBranchStatus = () => {
   });
 };
 
+export const useDeleteBranch = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => branchesService.deleteBranch(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['branches'] });
+      queryClient.invalidateQueries({ queryKey: ['branchPerformance'] });
+      queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
+    }
+  });
+};
+
 // --- Users Hooks ---
 export const useUsers = (filters = {}) => {
   return useQuery({
@@ -114,6 +126,18 @@ export const useToggleUserStatus = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id) => usersService.toggleUserStatus(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['branchManagers'] });
+      queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
+    }
+  });
+};
+
+export const useDeleteUser = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => usersService.deleteUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['branchManagers'] });
@@ -190,7 +214,7 @@ export const useOutstandingPayments = (branchId = 'all') => {
 export const useInvoices = (branchId = 'all', filters = {}) => {
   return useQuery({
     queryKey: ['invoices', branchId, filters],
-    queryFn: () => invoicesService.getInvoices(branchId, filters)
+    queryFn: () => invoicesService.getInvoices({ branchId, ...filters })
   });
 };
 

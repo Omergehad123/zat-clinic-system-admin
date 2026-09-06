@@ -376,12 +376,12 @@ export default function SuperAdminDashboardPage() {
                     {formatCurrency(branch.totalAdvances)}
                   </td>
                   <td className="mono-table-td">
-                    <span className={`px-2 py-0.5 text-[11px] font-bold rounded-full ${
-                      branch.status === 'نشط' 
+                    <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${
+                      branch.status === 'نشط' || branch.status === 'active'
                         ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
                         : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
                     }`}>
-                      {branch.status}
+                      {branch.status === 'active' || branch.status === 'نشط' ? 'نشط' : 'معطل'}
                     </span>
                   </td>
                   <td className="mono-table-td text-center">

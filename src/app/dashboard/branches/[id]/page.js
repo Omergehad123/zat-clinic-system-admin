@@ -48,8 +48,12 @@ export default function BranchDetailsPage() {
               <span className="px-2.5 py-0.5 text-xs font-mono font-bold bg-zinc-900 border border-zinc-700 text-zinc-300 rounded-lg">
                 {branch.code}
               </span>
-              <span className="px-2.5 py-0.5 text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full">
-                {branch.status}
+              <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full ${
+                branch.status === 'active' || branch.status === 'نشط'
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                  : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+              }`}>
+                {branch.status === 'active' || branch.status === 'نشط' ? 'نشط' : 'معطل'}
               </span>
             </div>
             <div className="flex items-center gap-4 text-xs text-zinc-400 mt-2">

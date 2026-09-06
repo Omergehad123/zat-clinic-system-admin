@@ -83,17 +83,18 @@ export default function PatientsPage() {
                 <th className="mono-table-th">قيمة الإقامة</th>
                 <th className="mono-table-th">المسدد</th>
                 <th className="mono-table-th">المتبقي</th>
+                <th className="mono-table-th">صافي الإيرادات</th>
                 <th className="mono-table-th">الحالة</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-zinc-500">جاري التحميل...</td>
+                  <td colSpan={8} className="py-8 text-center text-zinc-500">جاري التحميل...</td>
                 </tr>
               ) : patients.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-zinc-500">لا يوجد نزلاء مطبقين للبحث</td>
+                  <td colSpan={8} className="py-8 text-center text-zinc-500">لا يوجد نزلاء مطبقين للبحث</td>
                 </tr>
               ) : patients.map(p => (
                 <tr key={p.id} className="hover:bg-zinc-900/60 transition-colors">
@@ -108,6 +109,16 @@ export default function PatientsPage() {
                   <td className="mono-table-td font-semibold text-white">{formatCurrency(p.stayValue)}</td>
                   <td className="mono-table-td text-emerald-400 font-semibold">{formatCurrency(p.paid)}</td>
                   <td className="mono-table-td text-rose-400 font-semibold">{formatCurrency(p.remaining)}</td>
+                  <td className={`mono-table-td font-bold font-mono ${
+                    (p.netRevenue ?? ((p.stayValue || 0) - (p.expensesTotal || 0))) >= 0
+                      ? 'text-emerald-400'
+                      : 'text-rose-400'
+                  }`}>
+                    <div>{formatCurrency(p.netRevenue ?? ((p.stayValue || 0) - (p.expensesTotal || 0)))}</div>
+                    {(p.expensesTotal > 0) && (
+                      <div className="text-[10px] text-zinc-500 font-normal">مصاريف: {formatCurrency(p.expensesTotal)}</div>
+                    )}
+                  </td>
                   <td className="mono-table-td">
                     <span className={`px-2 py-0.5 text-[11px] font-bold rounded-full ${
                       p.status === 'حالي' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :

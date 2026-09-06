@@ -45,6 +45,13 @@ export const branchesService = {
     return res.data;
   },
 
+  deleteBranch: async (id) => {
+    const res = await apiFetch(`/branches/${id}?permanent=true`, {
+      method: 'DELETE'
+    });
+    return res;
+  },
+
   getBranchPerformance: async () => {
     const res = await apiFetch('/reports/comparison');
     return (res.data || []).map(b => ({

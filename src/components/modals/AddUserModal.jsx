@@ -13,17 +13,21 @@ export default function AddUserModal() {
   const { data: branches = [] } = useBranches();
   const createUserMutation = useCreateUser();
 
+  const modalData = useUIStore(s => s.modalData);
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('123456');
-  const [role, setRole] = useState('branch_manager');
-  const [branchId, setBranchId] = useState('');
+  const [role, setRole] = useState(modalData?.role || 'branch_manager');
+  const [branchId, setBranchId] = useState(modalData?.branchId || '');
 
   useEffect(() => {
-    if (branches.length > 0 && !branchId) {
+    if (modalData?.branchId) {
+      setBranchId(modalData.branchId);
+    } else if (branches.length > 0 && !branchId) {
       setBranchId(branches[0]._id || branches[0].id);
     }
-  }, [branches, branchId]);
+  }, [branches, branchId, modalData]);
 
   const [error, setError] = useState('');
 

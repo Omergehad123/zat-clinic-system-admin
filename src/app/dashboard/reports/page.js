@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useMonthlyReport, useOutstandingPayments, useBranches } from '../../../hooks/useDashboardQueries';
 import { useUIStore } from '../../../store/useUIStore';
 import { formatCurrency, formatDate, getArabicMonthName } from '../../../utils/formatters';
-import * as XLSX from 'xlsx';
+import { exportStyledExcel } from '../../../utils/excelExporter';
 import { BarChart3, Download, Calendar, DollarSign, AlertCircle, FileSpreadsheet, Filter } from 'lucide-react';
 
 export default function ReportsPage() {
@@ -18,46 +18,94 @@ export default function ReportsPage() {
   const { data: outstandingData, isLoading: loadingOutstanding } = useOutstandingPayments(branchFilter);
   const { data: branches = [] } = useBranches();
 
-  // Excel Export Handler using XLSX
-  const handleExportExcel = () => {
-    const wb = XLSX.utils.book_new();
+  // Excel Export Handler using exportStyledExcel
+  const handleExportExcel = async () => {
+    try {
+      if (activeTab === 'monthly') {
+        const periodTitle = `الفترة: ${getArabicMonthName(month)} ${year}`;
 
-    if (activeTab === 'monthly') {
-      const summaryRows = [
-        { 'البيان': 'إجمالي الإيرادات المجمعة', 'المبلغ (جنيه)': monthlyData?.totals?.totalRevenue || 0 },
-        { 'البيان': 'إجمالي المصروفات الشاملة', 'المبلغ (جنيه)': monthlyData?.totals?.totalExpenses || 0 },
-        { 'البيان': 'صافي الأرباح والإيرادات', 'المبلغ (جنيه)': monthlyData?.totals?.netRevenue || 0 },
-        { 'البيان': 'إجمالي السلف', 'المبلغ (جنيه)': monthlyData?.totals?.totalAdvances || 0 },
-        { 'البيان': 'إجمالي المبالغ المتبقية للنزلاء', 'المبلغ (جنيه)': monthlyData?.totals?.totalOutstanding || 0 },
-      ];
+        await exportStyledExcel({
+          filename: `تقرير_المنظومة_الشهري_${getArabicMonthName(month)}_${year}.xlsx`,
+          sheets: [
+            {
+              name: 'الملخص المالي',
+              title: 'التقرير المالي الإجمالي للمنظومة',
+              subtitle: periodTitle,
+              columns: [
+                { header: 'البيان / المؤشر المالي', key: 'metric', width: 35, align: 'right', headerColor: 'FF047857' },
+                { header: 'المبلغ (جنيه مصري)', key: 'amount', width: 25, type: 'currency', align: 'center', headerColor: 'FF047857' }
+              ],
+              rows: [
+                { metric: 'إجمالي الإيرادات المجمعة', amount: monthlyData?.totals?.totalRevenue || 0 },
+                { metric: 'إجمالي المصروفات الشاملة', amount: monthlyData?.totals?.totalExpenses || 0 },
+                { metric: 'صافي الأرباح والإيرادات', amount: monthlyData?.totals?.netRevenue || 0 },
+                { metric: 'إجمالي سلف الموظفين', amount: monthlyData?.totals?.totalAdvances || 0 },
+                { metric: 'إجمالي المبالغ المتبقية للنزلاء', amount: monthlyData?.totals?.totalOutstanding || 0 }
+              ]
+            },
+            {
+              name: 'توزيع المصروفات',
+              title: 'تفاصيل المصروفات الشاملة حسب التصنيف',
+              subtitle: periodTitle,
+              columns: [
+                { header: 'التصنيف', key: 'name', width: 30, align: 'right', headerColor: 'FFB91C1C' },
+                { header: 'المبلغ الإجمالي (جنيه)', key: 'value', width: 25, type: 'currency', align: 'center', headerColor: 'FFB91C1C' }
+              ],
+              rows: (monthlyData?.categoryBreakdown || []).map(cat => ({
+                name: cat.name,
+                value: cat.value || 0
+              })),
+              summaryRow: {
+                name: 'إجمالي المصروفات:',
+                value: (monthlyData?.categoryBreakdown || []).reduce((s, c) => s + (c.value || 0), 0)
+              }
+            }
+          ]
+        });
+      } else {
+        const rows = (outstandingData?.list || []).map(p => ({
+          patientName: p.patientName,
+          branchName: p.branchName,
+          entryDate: p.entryDate,
+          stayValue: p.stayValue || 0,
+          paid: p.paid || 0,
+          remaining: p.remaining || 0,
+          notes: p.notes || '-'
+        }));
 
-      const breakdownRows = (monthlyData?.categoryBreakdown || []).map(cat => ({
-        'التصنيف': cat.name,
-        'المبلغ الإجمالي (جنيه)': cat.value
-      }));
+        const totalStay = rows.reduce((s, r) => s + r.stayValue, 0);
+        const totalPaid = rows.reduce((s, r) => s + r.paid, 0);
+        const totalRem = rows.reduce((s, r) => s + r.remaining, 0);
 
-      const wsSummary = XLSX.utils.json_to_sheet(summaryRows);
-      const wsBreakdown = XLSX.utils.json_to_sheet(breakdownRows);
-
-      XLSX.utils.book_append_sheet(wb, wsSummary, 'الملخص المالي');
-      XLSX.utils.book_append_sheet(wb, wsBreakdown, 'توزيع المصروفات');
-
-      XLSX.writeFile(wb, `تقرير_المنظومة_الشهري_${getArabicMonthName(month)}_${year}.xlsx`);
-    } else {
-      const rows = (outstandingData?.list || []).map(p => ({
-        'اسم النزيل': p.patientName,
-        'الفرع': p.branchName,
-        'تاريخ الدخول': p.entryDate,
-        'قيمة الإقامة': p.stayValue,
-        'المسدد': p.paid,
-        'المتبقي (جنيه)': p.remaining,
-        'ملاحظات': p.notes || ''
-      }));
-
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, 'مستحقات النزلاء المتبقية');
-
-      XLSX.writeFile(wb, `تقرير_مستحقات_النزلاء_المتبقية_${new Date().toISOString().split('T')[0]}.xlsx`);
+        await exportStyledExcel({
+          filename: `تقرير_مستحقات_النزلاء_المتبقية_${new Date().toISOString().split('T')[0]}.xlsx`,
+          sheets: [
+            {
+              name: 'مستحقات النزلاء المتبقية',
+              title: 'كشف مبالغ ومستحقات النزلاء المتبقية غير المحصلة',
+              subtitle: `تاريخ التقرير: ${new Date().toISOString().split('T')[0]}`,
+              columns: [
+                { header: 'اسم النزيل', key: 'patientName', width: 25, align: 'right' },
+                { header: 'الفرع', key: 'branchName', width: 20, align: 'center' },
+                { header: 'تاريخ الدخول', key: 'entryDate', width: 16, align: 'center' },
+                { header: 'قيمة الإقامة', key: 'stayValue', width: 18, type: 'currency' },
+                { header: 'المبلغ المسدد', key: 'paid', width: 18, type: 'currency' },
+                { header: 'المتبقي (جنيه)', key: 'remaining', width: 18, type: 'currency', headerColor: 'FFB91C1C' },
+                { header: 'ملاحظات', key: 'notes', width: 25, align: 'right' }
+              ],
+              rows,
+              summaryRow: {
+                patientName: 'إجمالي المستحقات:',
+                stayValue: totalStay,
+                paid: totalPaid,
+                remaining: totalRem
+              }
+            }
+          ]
+        });
+      }
+    } catch (err) {
+      console.error('Failed to export styled excel', err);
     }
   };
 
