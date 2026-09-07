@@ -55,6 +55,13 @@ export const patientsService = {
     return res;
   },
 
+  deletePatient: async (id) => {
+    const res = await apiFetch(`/patients/${id}?permanent=true`, {
+      method: 'DELETE'
+    });
+    return res;
+  },
+
   addPayment: async (paymentData) => {
     const res = await apiFetch('/patient-payments', {
       method: 'POST',

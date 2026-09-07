@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '../../components/layout/Header';
 import Sidebar from '../../components/layout/Sidebar';
+import GlobalModals from '../../components/modules/GlobalModals';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useUIStore } from '../../store/useUIStore';
 
@@ -35,6 +36,7 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-cairo">
+      <GlobalModals />
       {/* Toast Notification Banner */}
       {toast && (
         <div 
