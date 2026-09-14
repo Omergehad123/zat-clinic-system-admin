@@ -27,10 +27,14 @@ export const financeService = {
     if (branchId && branchId !== 'all') {
       query += `branchId=${branchId}&`;
     }
-    const res = await apiFetch(`/transactions${query}`);
+    const [res, patientsRes] = await Promise.all([
+      apiFetch(`/transactions${query}`),
+      apiFetch(`/patients${branchId && branchId !== 'all' ? `?branchId=${branchId}` : ''}`).catch(() => ({ data: [] }))
+    ]);
     const rawTransactions = res.data || [];
+    const patients = patientsRes?.data || [];
 
-    let totalIncome = 0;
+    let totalIncomeFromTx = 0;
     let totalExpenses = 0;
     let advancesTotal = 0;
 
@@ -80,7 +84,7 @@ export const financeService = {
       }
 
       if (t.type === 'income') {
-        totalIncome += amt;
+        totalIncomeFromTx += amt;
         monthlyMap[monthIdx].revenue += amt;
       } else if (t.type === 'expense') {
         totalExpenses += amt;
@@ -138,11 +142,22 @@ export const financeService = {
 
     const trendData = Object.values(monthlyMap).sort((a, b) => a.sortKey - b.sortKey);
 
+    // 1. إجمالي الإيرادات = مجموع صافي إيرادات النزلاء (المدفوع - مصاريف النزيل)
+    const patientNetRevenueTotal = patients.reduce((sum, p) => {
+      const paid     = Number(p.paidAmount   ?? p.paid          ?? p.financials?.paid ?? 0);
+      const expenses = Number(p.totalExpenses ?? p.expensesTotal ?? p.financials?.expenses ?? 0);
+      return sum + (paid - expenses);
+    }, 0);
+
+    const calculatedTotalIncome = patients.length > 0 ? patientNetRevenueTotal : totalIncomeFromTx;
+    const calculatedTotalExpenses = totalExpenses;
+    const calculatedNetRevenue = calculatedTotalIncome - calculatedTotalExpenses;
+
     return {
       totals: {
-        totalIncome,
-        totalExpenses,
-        netRevenue: totalIncome - totalExpenses,
+        totalIncome: calculatedTotalIncome,
+        totalExpenses: calculatedTotalExpenses,
+        netRevenue: calculatedNetRevenue,
         advancesTotal
       },
       categoryData,

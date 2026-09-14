@@ -19,6 +19,7 @@ export const reportsService = {
       { name: 'صيانة', value: exp.Maintenance || 0 },
       { name: 'مستلزمات', value: exp.Supplies || 0 },
       { name: 'سلف', value: exp.Advances || 0 },
+      { name: 'مصاريف نزلاء', value: exp.PatientExpenses || 0 },
       { name: 'أخرى', value: exp.Other || 0 },
     ];
 
