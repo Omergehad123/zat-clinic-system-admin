@@ -190,6 +190,7 @@ export default function PatientsPage() {
                 <th className="mono-table-th">اسم النزيل</th>
                 <th className="mono-table-th">الفرع</th>
                 <th className="mono-table-th">تاريخ الدخول</th>
+                <th className="mono-table-th">تاريخ التجديد</th>
                 <th className="mono-table-th">قيمة الإقامة</th>
                 <th className="mono-table-th">المسدد</th>
                 <th className="mono-table-th">المتبقي</th>
@@ -201,14 +202,25 @@ export default function PatientsPage() {
             <tbody className="divide-y divide-zinc-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-zinc-500">جاري التحميل...</td>
+                  <td colSpan={10} className="py-8 text-center text-zinc-500">جاري التحميل...</td>
                 </tr>
               ) : patients.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-zinc-500">لا يوجد نزلاء مطابقين للبحث</td>
+                  <td colSpan={10} className="py-8 text-center text-zinc-500">لا يوجد نزلاء مطابقين للبحث</td>
                 </tr>
               ) : patients.map(p => {
                 const isOpen = openActionId === p.id;
+                let renewalDate = p.lastRenewalDate || p.renewalDate;
+                if (!renewalDate && Array.isArray(p.timeline)) {
+                  const ren = p.timeline.filter(e => e.type === 'renewal');
+                  if (ren.length > 0) renewalDate = ren[ren.length - 1].date;
+                }
+                if (!renewalDate && p.notes) {
+                  const m = p.notes.match(/\[تجديد إقامة بتاريخ\s+([0-9]{4}-[0-9]{2}-[0-9]{2})\]/);
+                  if (m && m[1]) renewalDate = m[1];
+                }
+                const renewalsCount = p.renewalsCount || (p.timeline?.filter(e => e.type === 'renewal')?.length || (renewalDate ? 1 : 0));
+
                 return (
                   <tr key={p.id} className="hover:bg-zinc-900/60 transition-colors">
                     <td className="mono-table-td font-bold text-white">{p.name}</td>
@@ -219,6 +231,20 @@ export default function PatientsPage() {
                       </span>
                     </td>
                     <td className="mono-table-td text-zinc-400">{formatDate(p.entryDate)}</td>
+                    <td className="mono-table-td">
+                      {renewalDate ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-emerald-400 font-semibold">{formatDate(renewalDate)}</span>
+                          {renewalsCount > 1 && (
+                            <span className="text-[10px] px-1.5 py-0.5 bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 rounded font-mono font-bold">
+                              {renewalsCount}x
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-zinc-600 text-xs">-</span>
+                      )}
+                    </td>
                     <td className="mono-table-td font-semibold text-white">{formatCurrency(p.stayValue)}</td>
                     <td className="mono-table-td text-emerald-400 font-semibold">{formatCurrency(p.paid)}</td>
                     <td className="mono-table-td text-rose-400 font-semibold">{formatCurrency(p.remaining)}</td>
@@ -303,7 +329,20 @@ export default function PatientsPage() {
           </div>
 
           <div className="py-1">
-            {activePatient.status !== 'خرج' && activePatient.status !== 'discharged' ? (
+            <button
+              onClick={() => {
+                setOpenActionId(null);
+                setActivePatient(null);
+                setMenuPosition(null);
+                openModal('RENEW_PATIENT', activePatient);
+              }}
+              className="w-full text-right px-3 py-2 text-xs text-emerald-400 hover:bg-emerald-500/10 flex items-center gap-2 transition-colors font-medium"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-emerald-400" />
+              <span>تجديد الإقامة (تمديد الحجز)</span>
+            </button>
+
+            {activePatient.status !== 'خرج' && activePatient.status !== 'discharged' && (
               <button
                 onClick={() => {
                   setOpenActionId(null);
@@ -311,23 +350,10 @@ export default function PatientsPage() {
                   setMenuPosition(null);
                   openModal('DISCHARGE_PATIENT', activePatient);
                 }}
-                className="w-full text-right px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white flex items-center gap-2 transition-colors font-medium"
+                className="w-full text-right px-3 py-2 text-xs text-rose-300 hover:bg-rose-500/10 hover:text-rose-200 flex items-center gap-2 transition-colors font-medium"
               >
-                <LogOut className="w-3.5 h-3.5 text-zinc-400" />
+                <LogOut className="w-3.5 h-3.5 text-rose-400" />
                 <span>تسجيل خروج النزيل</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  setOpenActionId(null);
-                  setActivePatient(null);
-                  setMenuPosition(null);
-                  openModal('RENEW_PATIENT', activePatient);
-                }}
-                className="w-full text-right px-3 py-2 text-xs text-emerald-400 hover:bg-emerald-500/10 flex items-center gap-2 transition-colors font-medium"
-              >
-                <RotateCcw className="w-3.5 h-3.5 text-emerald-400" />
-                <span>تجديد الإقامة (إعادة دخول)</span>
               </button>
             )}
 

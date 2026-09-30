@@ -3,7 +3,11 @@ import { patientsService } from '../services/patients.service';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
 
-export const usePatients = (branchId = 'all', search = '', statusFilter = 'ALL') => {
+export const usePatients = (search = '', statusFilter = 'ALL') => {
+  const user = useAuthStore(s => s.user);
+  const branch = useAuthStore(s => s.branch);
+  const branchId = user?.branchId || branch?._id || branch?.id || 'all';
+
   return useQuery({
     queryKey: ['patients', branchId, search, statusFilter],
     queryFn: () => patientsService.getPatients(branchId, search, statusFilter)
@@ -20,17 +24,39 @@ export const usePatientDetails = (patientId) => {
 
 export const useAddPatient = () => {
   const queryClient = useQueryClient();
+  const user = useAuthStore(s => s.user);
+  const branch = useAuthStore(s => s.branch);
   const showToast = useUIStore(s => s.showToast);
+  const branchId = user?.branchId || branch?._id || branch?.id;
 
   return useMutation({
-    mutationFn: ({ data, branchId }) => patientsService.addPatient(data, branchId),
+    mutationFn: (data) => patientsService.addPatient(data, branchId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patients'] });
-      queryClient.invalidateQueries({ queryKey: ['branches'] });
+      queryClient.invalidateQueries({ queryKey: ['finance'] });
       showToast('تمت إضافة النزيل الجديد بنجاح', 'success');
     },
     onError: (err) => {
       showToast(err.message || 'حدث خطأ أثناء إضافة النزيل', 'error');
+    }
+  });
+};
+
+export const useRenewPatient = () => {
+  const queryClient = useQueryClient();
+  const showToast = useUIStore(s => s.showToast);
+
+  return useMutation({
+    mutationFn: ({ id, data }) => patientsService.renewPatient(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['patient', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['patients'] });
+      queryClient.invalidateQueries({ queryKey: ['finance'] });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      showToast('تم تجديد حجز وإقامة النزيل بنجاح', 'success');
+    },
+    onError: (err) => {
+      showToast(err.message || 'حدث خطأ أثناء تجديد الإقامة', 'error');
     }
   });
 };
@@ -44,10 +70,8 @@ export const useAddPayment = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['patient', variables.patientId] });
       queryClient.invalidateQueries({ queryKey: ['patients'] });
+      queryClient.invalidateQueries({ queryKey: ['finance'] });
       showToast('تم إضافة الدفعة بنجاح', 'success');
-    },
-    onError: (err) => {
-      showToast(err.message || 'حدث خطأ أثناء تسجيل الدفعة', 'error');
     }
   });
 };
@@ -61,10 +85,8 @@ export const useAddPatientExpense = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['patient', variables.patientId] });
       queryClient.invalidateQueries({ queryKey: ['patients'] });
+      queryClient.invalidateQueries({ queryKey: ['finance'] });
       showToast('تم إضافة مصروف النزيل بنجاح', 'success');
-    },
-    onError: (err) => {
-      showToast(err.message || 'حدث خطأ أثناء تسجيل المصروف', 'error');
     }
   });
 };
@@ -74,14 +96,12 @@ export const useDischargePatient = () => {
   const showToast = useUIStore(s => s.showToast);
 
   return useMutation({
-    mutationFn: ({ patientId, exitDate }) => patientsService.dischargePatient(patientId, exitDate),
+    mutationFn: ({ patientId, exitDate, notes }) => patientsService.dischargePatient(patientId, exitDate, notes),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['patient', variables.patientId] });
       queryClient.invalidateQueries({ queryKey: ['patients'] });
+      queryClient.invalidateQueries({ queryKey: ['finance'] });
       showToast('تم تسجيل خروج النزيل بنجاح', 'success');
-    },
-    onError: (err) => {
-      showToast(err.message || 'حدث خطأ أثناء تسجيل خروج النزيل', 'error');
     }
   });
 };
@@ -94,6 +114,7 @@ export const useDeletePatient = () => {
     mutationFn: (patientId) => patientsService.deletePatient(patientId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patients'] });
+      queryClient.invalidateQueries({ queryKey: ['finance'] });
       showToast('تم حذف النزيل نهائياً بنجاح', 'success');
     },
     onError: (err) => {
@@ -111,6 +132,7 @@ export const useUpdatePatient = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['patient', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['patients'] });
+      queryClient.invalidateQueries({ queryKey: ['finance'] });
       showToast('تم تحديث بيانات النزيل بنجاح', 'success');
     },
     onError: (err) => {
