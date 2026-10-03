@@ -144,7 +144,7 @@ export const financeService = {
 
     // 1. إجمالي الإيرادات = مجموع صافي إيرادات النزلاء (المدفوع - مصاريف النزيل)
     const patientNetRevenueTotal = patients.reduce((sum, p) => {
-      const paid     = Number(p.paidAmount   ?? p.paid          ?? p.financials?.paid ?? 0);
+      const paid = Number(p.paidAmount ?? p.paid ?? p.financials?.paid ?? 0);
       const expenses = Number(p.totalExpenses ?? p.expensesTotal ?? p.financials?.expenses ?? 0);
       return sum + (paid - expenses);
     }, 0);

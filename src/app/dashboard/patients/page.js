@@ -248,15 +248,24 @@ export default function PatientsPage() {
                     <td className="mono-table-td font-semibold text-white">{formatCurrency(p.stayValue)}</td>
                     <td className="mono-table-td text-emerald-400 font-semibold">{formatCurrency(p.paid)}</td>
                     <td className="mono-table-td text-rose-400 font-semibold">{formatCurrency(p.remaining)}</td>
-                    <td className={`mono-table-td font-bold font-mono ${
-                      (p.netRevenue ?? ((p.stayValue || 0) - (p.expensesTotal || 0))) >= 0
-                        ? 'text-emerald-400'
-                        : 'text-rose-400'
-                    }`}>
-                      <div>{formatCurrency(p.netRevenue ?? ((p.stayValue || 0) - (p.expensesTotal || 0)))}</div>
-                      {(p.expensesTotal > 0) && (
-                        <div className="text-[10px] text-zinc-500 font-normal">مصاريف: {formatCurrency(p.expensesTotal)}</div>
-                      )}
+                    <td className="mono-table-td">
+                      {(() => {
+                        const paid = Number(p.paidAmount ?? p.paid ?? 0);
+                        const exp = Number(p.totalExpenses ?? p.expensesTotal ?? 0);
+                        const net = paid - exp;
+                        return (
+                          <>
+                            <div className={`font-bold font-mono ${net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {formatCurrency(net)}
+                            </div>
+                            {exp > 0 && (
+                              <div className="text-[10px] text-zinc-500 font-normal">
+                                مصاريف: {formatCurrency(exp)}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                     </td>
                     <td className="mono-table-td">{getStatusBadge(p.status)}</td>
                     <td className="mono-table-td text-center">
@@ -276,6 +285,52 @@ export default function PatientsPage() {
                 );
               })}
             </tbody>
+
+            {patients.length > 0 && (
+              <tfoot className="border-t-2 border-zinc-700 bg-zinc-950 font-bold">
+                <tr>
+                  <td className="mono-table-td text-white" colSpan={4}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs uppercase tracking-wider text-zinc-300">الإجمالي العام:</span>
+                      <span className="text-xs text-zinc-400 font-mono">({patients.length} نزيل)</span>
+                    </div>
+                  </td>
+                  <td className="mono-table-td text-white font-mono text-sm">
+                    {formatCurrency(patients.reduce((sum, p) => sum + Number(p.stayValue || 0), 0))}
+                  </td>
+                  <td className="mono-table-td text-emerald-400 font-mono text-sm">
+                    {formatCurrency(patients.reduce((sum, p) => sum + Number(p.paid || 0), 0))}
+                  </td>
+                  <td className="mono-table-td text-rose-400 font-mono text-sm">
+                    {formatCurrency(patients.reduce((sum, p) => sum + Number(p.remaining || 0), 0))}
+                  </td>
+                  <td className="mono-table-td">
+                    {(() => {
+                      const totalNet = patients.reduce((sum, p) => {
+                        const paid = Number(p.paidAmount ?? p.paid ?? 0);
+                        const exp = Number(p.totalExpenses ?? p.expensesTotal ?? 0);
+                        return sum + (paid - exp);
+                      }, 0);
+                      const totalExp = patients.reduce((sum, p) => sum + Number(p.totalExpenses ?? p.expensesTotal ?? 0), 0);
+                      return (
+                        <>
+                          <div className={`font-mono text-sm ${totalNet >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {formatCurrency(totalNet)}
+                          </div>
+                          {totalExp > 0 && (
+                            <div className="text-[10px] text-zinc-500 font-mono">
+                              مصاريف: {formatCurrency(totalExp)}
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </td>
+                  <td className="mono-table-td text-zinc-600 text-xs text-center">-</td>
+                  <td className="mono-table-td text-zinc-600 text-xs text-center">-</td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
