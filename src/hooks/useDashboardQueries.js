@@ -234,6 +234,17 @@ export const useAttendance = (branchId = 'all', month = 9, year = 2026) => {
   });
 };
 
+export const useDeleteAttendance = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => attendanceService.deleteAttendance(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
+    }
+  });
+};
+
 // --- Audit Logs Hooks ---
 export const useAuditLogs = (filters = {}) => {
   return useQuery({
@@ -241,3 +252,64 @@ export const useAuditLogs = (filters = {}) => {
     queryFn: () => auditLogsService.getAuditLogs(filters)
   });
 };
+
+// --- Advances Mutation Hooks ---
+export const useUpdateAdvance = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, advanceData }) => advancesService.updateAdvance(id, advanceData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['advances'] });
+      queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
+    }
+  });
+};
+
+export const useDeleteAdvance = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => advancesService.deleteAdvance(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['advances'] });
+      queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
+    }
+  });
+};
+
+// --- Employee Mutation Hooks ---
+export const useUpdateEmployee = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, employeeData }) => employeesService.updateEmployee(id, employeeData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['employeeAnalytics'] });
+      queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
+    }
+  });
+};
+
+export const useDeleteEmployee = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => employeesService.deleteEmployee(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['employeeAnalytics'] });
+      queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
+    }
+  });
+};
+
+// --- Invoice Mutation Hooks ---
+export const useDeleteInvoice = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => invoicesService.deleteInvoice(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
+    }
+  });
+};
+

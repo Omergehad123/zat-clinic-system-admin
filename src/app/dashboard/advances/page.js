@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { useAdvances, useBranches } from '../../../hooks/useDashboardQueries';
 import { useUIStore } from '../../../store/useUIStore';
 import { formatCurrency, formatDate, formatNumber } from '../../../utils/formatters';
-import { Wallet, Search, Filter, MapPin } from 'lucide-react';
+import { Wallet, Search, MapPin, Pencil, Trash2 } from 'lucide-react';
+import EditAdvanceModal from '../../../components/modals/EditAdvanceModal';
+import DeleteAdvanceModal from '../../../components/modals/DeleteAdvanceModal';
 
 export default function AdvancesPage() {
-  const { selectedBranchId } = useUIStore();
+  const { selectedBranchId, openModal, activeModal } = useUIStore();
   const [branchFilter, setBranchFilter] = useState(selectedBranchId || 'all');
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
@@ -111,16 +113,17 @@ export default function AdvancesPage() {
                 <th className="mono-table-th">الفرع</th>
                 <th className="mono-table-th">مبلغ السلفة</th>
                 <th className="mono-table-th">ملاحظات</th>
+                <th className="mono-table-th text-center">الإجراءات</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-zinc-500">جاري التحميل...</td>
+                  <td colSpan={7} className="py-8 text-center text-zinc-500">جاري التحميل...</td>
                 </tr>
               ) : advances.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-zinc-500">لا توجد سلف مسجلة</td>
+                  <td colSpan={7} className="py-8 text-center text-zinc-500">لا توجد سلف مسجلة</td>
                 </tr>
               ) : advances.map(adv => (
                 <tr key={adv.id} className="hover:bg-zinc-900/60 transition-colors">
@@ -135,12 +138,35 @@ export default function AdvancesPage() {
                   </td>
                   <td className="mono-table-td text-emerald-400 font-bold">{formatCurrency(adv.amount)}</td>
                   <td className="mono-table-td text-zinc-400">{adv.notes || '-'}</td>
+                  <td className="mono-table-td text-center">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button
+                        onClick={() => openModal('EDIT_ADVANCE', adv)}
+                        className="p-1.5 text-xs bg-zinc-900 border border-zinc-700 hover:border-blue-600 hover:bg-blue-950/30 text-blue-400 rounded-lg flex items-center gap-1 transition-colors"
+                        title="تعديل السلفة"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        <span>تعديل</span>
+                      </button>
+                      <button
+                        onClick={() => openModal('DELETE_ADVANCE', adv)}
+                        className="p-1.5 text-xs bg-zinc-900 border border-zinc-700 hover:border-rose-800 hover:bg-rose-950/30 text-rose-400 rounded-lg flex items-center gap-1 transition-colors"
+                        title="حذف السلفة"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>حذف</span>
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {activeModal === 'EDIT_ADVANCE' && <EditAdvanceModal />}
+      {activeModal === 'DELETE_ADVANCE' && <DeleteAdvanceModal />}
 
     </div>
   );

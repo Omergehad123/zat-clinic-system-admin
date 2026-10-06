@@ -4,10 +4,11 @@ import { useState, useMemo } from 'react';
 import { useInvoices } from '../../../hooks/useDashboardQueries';
 import { useUIStore } from '../../../store/useUIStore';
 import { formatCurrency, formatDate } from '../../../utils/formatters';
-import { FileText, Plus, MapPin, Calendar, DollarSign, ShoppingBag, Filter, X } from 'lucide-react';
+import { FileText, Plus, MapPin, Calendar, DollarSign, ShoppingBag, Filter, X, Trash2 } from 'lucide-react';
+import DeleteInvoiceModal from '../../../components/modals/DeleteInvoiceModal';
 
 export default function InvoicesPage() {
-  const { selectedBranchId, openModal } = useUIStore();
+  const { selectedBranchId, openModal, activeModal } = useUIStore();
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -120,27 +121,9 @@ export default function InvoicesPage() {
             >
               الكل
             </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDateFilter('today')}
-              className="px-2.5 py-1 text-xs rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-300 hover:bg-zinc-800 transition-all"
-            >
-              اليوم
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDateFilter('week')}
-              className="px-2.5 py-1 text-xs rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-300 hover:bg-zinc-800 transition-all"
-            >
-              آخر 7 أيام
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDateFilter('month')}
-              className="px-2.5 py-1 text-xs rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-300 hover:bg-zinc-800 transition-all"
-            >
-              هذا الشهر
-            </button>
+            <button type="button" onClick={() => handleQuickDateFilter('today')} className="px-2.5 py-1 text-xs rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-300 hover:bg-zinc-800 transition-all">اليوم</button>
+            <button type="button" onClick={() => handleQuickDateFilter('week')} className="px-2.5 py-1 text-xs rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-300 hover:bg-zinc-800 transition-all">آخر 7 أيام</button>
+            <button type="button" onClick={() => handleQuickDateFilter('month')} className="px-2.5 py-1 text-xs rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-300 hover:bg-zinc-800 transition-all">هذا الشهر</button>
           </div>
         </div>
 
@@ -150,12 +133,7 @@ export default function InvoicesPage() {
               <Calendar className="w-3.5 h-3.5" />
               من تاريخ:
             </label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="mono-input text-xs w-full"
-            />
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="mono-input text-xs w-full" />
           </div>
 
           <div>
@@ -163,21 +141,12 @@ export default function InvoicesPage() {
               <Calendar className="w-3.5 h-3.5" />
               إلى تاريخ:
             </label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="mono-input text-xs w-full"
-            />
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="mono-input text-xs w-full" />
           </div>
 
           <div>
             <label className="block text-xs text-zinc-400 mb-1 font-medium">التصنيف:</label>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="mono-input text-xs w-full"
-            >
+            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="mono-input text-xs w-full">
               <option value="all" className="bg-zinc-900 text-white">كل التصنيفات</option>
               <option value="أكل" className="bg-zinc-900 text-white">أكل</option>
               <option value="أدوية" className="bg-zinc-900 text-white">أدوية</option>
@@ -219,9 +188,19 @@ export default function InvoicesPage() {
                 <span className="text-xs font-mono font-bold text-emerald-400">#{inv.id}</span>
                 <span className="text-xs text-zinc-400 mr-3">{formatDate(inv.date)}</span>
               </div>
-              <span className="px-2.5 py-0.5 text-xs font-bold bg-zinc-900 border border-zinc-700 text-zinc-300 rounded-lg">
-                {inv.category}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 text-xs font-bold bg-zinc-900 border border-zinc-700 text-zinc-300 rounded-lg">
+                  {inv.category}
+                </span>
+                <button
+                  onClick={() => openModal('DELETE_INVOICE', inv)}
+                  className="p-1.5 text-xs bg-zinc-900 border border-zinc-700 hover:border-rose-800 hover:bg-rose-950/30 text-rose-400 rounded-lg flex items-center gap-1 transition-colors"
+                  title="حذف الفاتورة"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>حذف</span>
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center justify-between text-xs text-zinc-400">
@@ -253,7 +232,8 @@ export default function InvoicesPage() {
         ))}
       </div>
 
+      {activeModal === 'DELETE_INVOICE' && <DeleteInvoiceModal />}
+
     </div>
   );
 }
-

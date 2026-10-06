@@ -8,5 +8,12 @@ export const attendanceService = {
 
     const res = await apiFetch(`/attendance${query}`);
     return res.data || [];
+  },
+
+  deleteAttendance: async (id) => {
+    const res = await apiFetch(`/attendance/${id}`, {
+      method: 'DELETE'
+    });
+    return res;
   }
 };

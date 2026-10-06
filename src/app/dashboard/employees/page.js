@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { useEmployees, useEmployeeAnalytics, useBranches } from '../../../hooks/useDashboardQueries';
 import { useUIStore } from '../../../store/useUIStore';
 import { formatCurrency, formatNumber } from '../../../utils/formatters';
-import { UserCheck, Stethoscope, HeartPulse, ShieldAlert, Wrench, Wallet, MapPin, Filter } from 'lucide-react';
+import { UserCheck, Stethoscope, HeartPulse, ShieldAlert, Wrench, MapPin, Filter, Pencil, Trash2 } from 'lucide-react';
+import EditEmployeeModal from '../../../components/modals/EditEmployeeModal';
+import DeleteEmployeeModal from '../../../components/modals/DeleteEmployeeModal';
 
 export default function EmployeesPage() {
-  const { selectedBranchId } = useUIStore();
+  const { selectedBranchId, openModal, activeModal } = useUIStore();
   const [branchFilter, setBranchFilter] = useState(selectedBranchId || 'all');
   const [typeFilter, setTypeFilter] = useState('ALL');
 
@@ -132,16 +134,17 @@ export default function EmployeesPage() {
                 <th className="mono-table-th">التخصص</th>
                 <th className="mono-table-th">الفرع</th>
                 <th className="mono-table-th">الحالة</th>
+                <th className="mono-table-th text-center">الإجراءات</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-zinc-500">جاري التحميل...</td>
+                  <td colSpan={6} className="py-8 text-center text-zinc-500">جاري التحميل...</td>
                 </tr>
               ) : employees.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-zinc-500">لا يوجد موظفين مطبقين للبحث</td>
+                  <td colSpan={6} className="py-8 text-center text-zinc-500">لا يوجد موظفين مطبقين للبحث</td>
                 </tr>
               ) : employees.map(emp => (
                 <tr key={emp.id} className="hover:bg-zinc-900/60 transition-colors">
@@ -159,12 +162,35 @@ export default function EmployeesPage() {
                       {emp.status}
                     </span>
                   </td>
+                  <td className="mono-table-td text-center">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button
+                        onClick={() => openModal('EDIT_EMPLOYEE', emp)}
+                        className="p-1.5 text-xs bg-zinc-900 border border-zinc-700 hover:border-blue-600 hover:bg-blue-950/30 text-blue-400 rounded-lg flex items-center gap-1 transition-colors"
+                        title="تعديل الموظف"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        <span>تعديل</span>
+                      </button>
+                      <button
+                        onClick={() => openModal('DELETE_EMPLOYEE', emp)}
+                        className="p-1.5 text-xs bg-zinc-900 border border-zinc-700 hover:border-rose-800 hover:bg-rose-950/30 text-rose-400 rounded-lg flex items-center gap-1 transition-colors"
+                        title="حذف الموظف"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>حذف</span>
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {activeModal === 'EDIT_EMPLOYEE' && <EditEmployeeModal />}
+      {activeModal === 'DELETE_EMPLOYEE' && <DeleteEmployeeModal />}
 
     </div>
   );

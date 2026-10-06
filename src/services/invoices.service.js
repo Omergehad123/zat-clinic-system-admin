@@ -28,5 +28,21 @@ export const invoicesService = {
       body: JSON.stringify(invoiceData)
     });
     return res.data;
+  },
+
+  updateInvoice: async (id, invoiceData) => {
+    const res = await apiFetch(`/invoices/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(invoiceData)
+    });
+    return res.data;
+  },
+
+  deleteInvoice: async (id) => {
+    const res = await apiFetch(`/invoices/${id}`, {
+      method: 'DELETE'
+    });
+    return res;
   }
 };
+

@@ -3,7 +3,18 @@
 import { useState } from 'react';
 import { useAuditLogs, useBranches, useUsers } from '../../../hooks/useDashboardQueries';
 import { useUIStore } from '../../../store/useUIStore';
-import { History, Search, Filter, ShieldCheck, User } from 'lucide-react';
+import { History, Search, ShieldCheck, User, Clock, Tag } from 'lucide-react';
+
+// Color-code audit action types
+const getActionBadge = (actionCode) => {
+  if (!actionCode) return 'bg-zinc-800 text-zinc-300 border-zinc-700';
+  const code = actionCode.toUpperCase();
+  if (code.startsWith('CREATE') || code.startsWith('ADD')) return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+  if (code.startsWith('UPDATE') || code.startsWith('TOGGLE') || code.startsWith('RESET')) return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+  if (code.startsWith('DELETE') || code.startsWith('DISCHARGE')) return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+  if (code === 'LOGIN') return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
+  return 'bg-zinc-800 text-zinc-300 border-zinc-700';
+};
 
 export default function AuditLogsPage() {
   const { selectedBranchId } = useUIStore();
@@ -20,6 +31,15 @@ export default function AuditLogsPage() {
 
   const { data: branches = [] } = useBranches();
   const { data: users = [] } = useUsers();
+
+  // Filter logs by search term client-side (action or item)
+  const filteredLogs = search.trim()
+    ? logs.filter(log =>
+        (log.action || '').includes(search.trim()) ||
+        (log.item || '').includes(search.trim()) ||
+        (log.userName || '').includes(search.trim())
+      )
+    : logs;
 
   return (
     <div className="space-y-8 pb-12">
@@ -40,7 +60,7 @@ export default function AuditLogsPage() {
         <div className="relative">
           <input
             type="text"
-            placeholder="بحث في العمليات أو العناصر..."
+            placeholder="بحث في العمليات أو العناصر أو المستخدمين..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="mono-input pr-9"
@@ -79,6 +99,16 @@ export default function AuditLogsPage() {
         </div>
       </div>
 
+      {/* Stats bar */}
+      {!isLoading && filteredLogs.length > 0 && (
+        <div className="flex items-center gap-3 text-xs text-zinc-400 px-1">
+          <span className="flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5 text-zinc-500" />
+            إجمالي السجلات: <strong className="text-white mr-1">{filteredLogs.length}</strong>
+          </span>
+        </div>
+      )}
+
       {/* Logs Table */}
       <div className="mono-card p-6 space-y-4">
         <div className="overflow-x-auto">
@@ -98,16 +128,18 @@ export default function AuditLogsPage() {
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-zinc-500">جاري التحميل...</td>
                 </tr>
-              ) : logs.length === 0 ? (
+              ) : filteredLogs.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-zinc-500">لا توجد عمليات مسجلة بالسجل</td>
                 </tr>
-              ) : logs.map(log => (
+              ) : filteredLogs.map(log => (
                 <tr key={log.id} className="hover:bg-zinc-900/60 transition-colors">
-                  <td className="mono-table-td font-mono dir-ltr text-zinc-400 text-left">{log.date}</td>
+                  <td className="mono-table-td font-mono text-zinc-400 text-left dir-ltr whitespace-nowrap">
+                    {log.date || '-'}
+                  </td>
                   <td className="mono-table-td font-bold text-white">
                     <span className="flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-zinc-400" />
+                      <User className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                       {log.userName}
                     </span>
                   </td>
@@ -116,9 +148,22 @@ export default function AuditLogsPage() {
                       {log.userRole}
                     </span>
                   </td>
-                  <td className="mono-table-td font-bold text-emerald-400">{log.action}</td>
-                  <td className="mono-table-td text-zinc-200">{log.item}</td>
-                  <td className="mono-table-td text-zinc-300 font-semibold">{log.branchName}</td>
+                  <td className="mono-table-td">
+                    <span className={`px-2 py-0.5 text-[11px] font-bold border rounded-md ${getActionBadge(log.actionCode)}`}>
+                      {log.action}
+                    </span>
+                  </td>
+                  <td className="mono-table-td text-zinc-200 max-w-[200px]">
+                    {log.item && log.item !== '-' ? (
+                      <span className="flex items-center gap-1">
+                        <Tag className="w-3 h-3 text-zinc-500 shrink-0" />
+                        <span className="truncate" title={log.item}>{log.item}</span>
+                      </span>
+                    ) : (
+                      <span className="text-zinc-600">-</span>
+                    )}
+                  </td>
+                  <td className="mono-table-td text-zinc-300 font-semibold">{log.branchName || '-'}</td>
                 </tr>
               ))}
             </tbody>

@@ -87,5 +87,21 @@ export const advancesService = {
 
   addAdvance: async (advanceData) => {
     return advancesService.createAdvance(advanceData);
+  },
+
+  updateAdvance: async (id, advanceData) => {
+    const res = await apiFetch(`/advances/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(advanceData)
+    });
+    return res.data;
+  },
+
+  deleteAdvance: async (id) => {
+    const res = await apiFetch(`/advances/${id}`, {
+      method: 'DELETE'
+    });
+    return res;
   }
 };
+
