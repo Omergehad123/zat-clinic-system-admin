@@ -371,10 +371,13 @@ export default function PatientsPage() {
             </button>
             <button
               onClick={() => {
+                const target = activePatient;
                 setOpenActionId(null);
                 setActivePatient(null);
                 setMenuPosition(null);
-                openModal('ADD_PATIENT_EXPENSE', { ...activePatient, patientId: activePatient.id, patientName: activePatient.name });
+                if (target) {
+                  openModal('ADD_PATIENT_EXPENSE', { ...target, patientId: target.id, patientName: target.name });
+                }
               }}
               className="w-full text-right px-3 py-2 text-xs text-amber-400 hover:bg-amber-500/10 flex items-center gap-2 transition-colors font-medium"
             >
@@ -386,10 +389,13 @@ export default function PatientsPage() {
           <div className="py-1">
             <button
               onClick={() => {
+                const target = activePatient;
                 setOpenActionId(null);
                 setActivePatient(null);
                 setMenuPosition(null);
-                openModal('RENEW_PATIENT', activePatient);
+                if (target) {
+                  openModal('RENEW_PATIENT', target);
+                }
               }}
               className="w-full text-right px-3 py-2 text-xs text-emerald-400 hover:bg-emerald-500/10 flex items-center gap-2 transition-colors font-medium"
             >
@@ -400,10 +406,13 @@ export default function PatientsPage() {
             {activePatient.status !== 'خرج' && activePatient.status !== 'discharged' && (
               <button
                 onClick={() => {
+                  const target = activePatient;
                   setOpenActionId(null);
                   setActivePatient(null);
                   setMenuPosition(null);
-                  openModal('DISCHARGE_PATIENT', activePatient);
+                  if (target) {
+                    openModal('DISCHARGE_PATIENT', target);
+                  }
                 }}
                 className="w-full text-right px-3 py-2 text-xs text-rose-300 hover:bg-rose-500/10 hover:text-rose-200 flex items-center gap-2 transition-colors font-medium"
               >
@@ -414,10 +423,13 @@ export default function PatientsPage() {
 
             <button
               onClick={() => {
+                const target = activePatient;
                 setOpenActionId(null);
                 setActivePatient(null);
                 setMenuPosition(null);
-                openModal('EDIT_PATIENT', activePatient);
+                if (target) {
+                  openModal('EDIT_PATIENT', target);
+                }
               }}
               className="w-full text-right px-3 py-2 text-xs text-blue-400 hover:bg-blue-500/10 flex items-center gap-2 transition-colors font-medium"
             >
@@ -429,10 +441,13 @@ export default function PatientsPage() {
           <div className="py-1">
             <button
               onClick={() => {
+                const target = activePatient;
                 setOpenActionId(null);
                 setActivePatient(null);
                 setMenuPosition(null);
-                openModal('DELETE_PATIENT', activePatient);
+                if (target) {
+                  openModal('DELETE_PATIENT', target);
+                }
               }}
               className="w-full text-right px-3 py-2 text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition-colors font-medium"
             >
