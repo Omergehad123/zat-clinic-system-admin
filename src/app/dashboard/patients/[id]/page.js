@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { usePatientDetails } from '../../../../hooks/usePatients';
 import { useUIStore } from '../../../../store/useUIStore';
+import { useAuthStore } from '../../../../store/useAuthStore';
 import { formatCurrency, formatDate } from '../../../../utils/formatters';
 import { 
   ArrowRight, 
@@ -21,7 +22,8 @@ import {
   Filter,
   LogIn,
   Layers,
-  ArrowUpDown
+  ArrowUpDown,
+  Trash2
 } from 'lucide-react';
 
 export default function PatientDetailPage() {
@@ -38,6 +40,8 @@ export default function PatientDetailPage() {
 
   const { data: patient, isLoading } = usePatientDetails(patientId);
   const openModal = useUIStore(s => s.openModal);
+  const user = useAuthStore(s => s.user);
+  const isSuperAdmin = user?.role === 'super_admin';
 
   // Unified Timeline Events Builder
   const unifiedTimelineEvents = useMemo(() => {
@@ -54,8 +58,21 @@ export default function PatientDetailPage() {
       if (ev.type === 'entry') hasEntry = true;
       if (ev.type === 'discharge') hasDischarge = true;
 
+      // Link paymentId if this is a payment event
+      let paymentId = ev._id || ev.id;
+      if (ev.type === 'payment' && Array.isArray(patient.payments)) {
+        const matchingPay = patient.payments.find(p => 
+          Number(p.amount) === Number(ev.amount) &&
+          Math.abs(new Date(p.date).getTime() - new Date(ev.date || ev.createdAt).getTime()) <= 24 * 60 * 60 * 1000
+        );
+        if (matchingPay) {
+          paymentId = matchingPay.id || matchingPay._id;
+        }
+      }
+
       events.push({
         id: ev._id || ev.id || `tl-${Math.random()}`,
+        paymentId: paymentId,
         type: ev.type || 'custom',
         category: (ev.type === 'payment') ? 'PAYMENTS' : (ev.type === 'expense') ? 'EXPENSES' : 'STAY',
         title: ev.title || (ev.type === 'renewal' ? 'تجديد الإقامة' : ev.type === 'entry' ? 'دخول أولي' : 'حركة إقامة'),
@@ -104,6 +121,7 @@ export default function PatientDetailPage() {
       if (!exists) {
         events.push({
           id: pay._id || pay.id || `pay-${Math.random()}`,
+          paymentId: pay._id || pay.id,
           type: 'payment',
           category: 'PAYMENTS',
           title: 'دفعة سداد إقامة',
@@ -557,9 +575,32 @@ export default function PatientDetailPage() {
                             )}
                           </div>
 
-                          <div className="text-xs text-zinc-400 flex items-center gap-2">
-                            <Calendar className="w-3.5 h-3.5 text-zinc-500" />
-                            <span className="font-semibold text-zinc-300">{formatDate(item.date)}</span>
+                          <div className="text-xs text-zinc-400 flex items-center gap-3">
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-zinc-500" />
+                              <span className="font-semibold text-zinc-300">{formatDate(item.date)}</span>
+                            </div>
+
+                            {/* Super Admin Payment Removal Button in Timeline */}
+                            {isSuperAdmin && item.type === 'payment' && (
+                              <button
+                                type="button"
+                                onClick={() => openModal('DELETE_PAYMENT', {
+                                  paymentId: item.paymentId || item.id,
+                                  id: item.paymentId || item.id,
+                                  _id: item.paymentId || item.id,
+                                  amount: item.amount,
+                                  date: item.date,
+                                  patientId: patient.id || patient._id,
+                                  patientName: patient.name
+                                })}
+                                className="px-2 py-0.5 rounded-lg text-rose-400 hover:text-white hover:bg-rose-500/20 border border-rose-500/20 transition-all flex items-center gap-1 text-[11px] font-medium"
+                                title="حذف دفعة السداد"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                <span>حذف الدفعة</span>
+                              </button>
+                            )}
                           </div>
                         </div>
 
@@ -616,12 +657,13 @@ export default function PatientDetailPage() {
                     <th className="mono-table-th">المبلغ</th>
                     <th className="mono-table-th">طريقة الدفع</th>
                     <th className="mono-table-th">ملاحظات</th>
+                    {isSuperAdmin && <th className="mono-table-th text-center">إجراءات</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {patient.payments?.length === 0 ? (
                     <tr>
-                      <td colSpan="4" className="text-center py-8 text-zinc-500">لا يوجد مدفوعات مسجلة بعد</td>
+                      <td colSpan={isSuperAdmin ? 5 : 4} className="text-center py-8 text-zinc-500">لا يوجد مدفوعات مسجلة بعد</td>
                     </tr>
                   ) : (
                     patient.payments?.map(pay => (
@@ -634,6 +676,24 @@ export default function PatientDetailPage() {
                           </span>
                         </td>
                         <td className="mono-table-td text-zinc-400">{pay.notes || '-'}</td>
+                        {isSuperAdmin && (
+                          <td className="mono-table-td text-center">
+                            <button
+                              type="button"
+                              onClick={() => openModal('DELETE_PAYMENT', {
+                                ...pay,
+                                paymentId: pay.id || pay._id,
+                                patientId: patient.id || patient._id,
+                                patientName: patient.name
+                              })}
+                              className="px-2.5 py-1 rounded-lg text-rose-400 hover:text-white hover:bg-rose-500/20 border border-rose-500/20 transition-all inline-flex items-center gap-1.5 text-xs font-semibold"
+                              title="حذف دفعة سداد إقامة"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>حذف الدفعة</span>
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))
                   )}
@@ -720,9 +780,29 @@ export default function PatientDetailPage() {
                     </div>
                   </div>
 
-                  <div className="text-left">
-                    <div className="font-black text-white text-base font-mono">{formatCurrency(item.amount)}</div>
-                    <div className="text-xs text-zinc-500">{formatDate(item.date)}</div>
+                  <div className="text-left flex items-center gap-3">
+                    <div>
+                      <div className="font-black text-white text-base font-mono">{formatCurrency(item.amount)}</div>
+                      <div className="text-xs text-zinc-500">{formatDate(item.date)}</div>
+                    </div>
+                    {isSuperAdmin && item.isIncome && (
+                      <button
+                        type="button"
+                        onClick={() => openModal('DELETE_PAYMENT', {
+                          id: item.id,
+                          _id: item.id,
+                          paymentId: item.id,
+                          amount: item.amount,
+                          date: item.date,
+                          patientId: patient.id || patient._id,
+                          patientName: patient.name
+                        })}
+                        className="p-1.5 rounded-lg text-rose-400 hover:text-white hover:bg-rose-500/20 border border-rose-500/20 transition-all text-xs"
+                        title="حذف هذه الدفعة"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))
