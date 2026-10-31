@@ -5,7 +5,8 @@ import { useMonthlyReport, useOutstandingPayments, useBranches } from '../../../
 import { useUIStore } from '../../../store/useUIStore';
 import { formatCurrency, formatDate, getArabicMonthName } from '../../../utils/formatters';
 import { exportStyledExcel } from '../../../utils/excelExporter';
-import { BarChart3, Download, Calendar, DollarSign, AlertCircle, FileSpreadsheet, Filter } from 'lucide-react';
+import { exportComprehensiveClinicExcel } from '../../../utils/clinicFullExcelExporter';
+import { BarChart3, Download, Calendar, DollarSign, AlertCircle, FileSpreadsheet, Filter, Loader2 } from 'lucide-react';
 
 export default function ReportsPage() {
   const { selectedBranchId } = useUIStore();
@@ -18,49 +19,19 @@ export default function ReportsPage() {
   const { data: outstandingData, isLoading: loadingOutstanding } = useOutstandingPayments(branchFilter);
   const { data: branches = [] } = useBranches();
 
-  // Excel Export Handler using exportStyledExcel
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Excel Export Handler
   const handleExportExcel = async () => {
+    setIsExporting(true);
     try {
       if (activeTab === 'monthly') {
-        const periodTitle = `الفترة: ${getArabicMonthName(month)} ${year}`;
-
-        await exportStyledExcel({
-          filename: `تقرير_المنظومة_الشهري_${getArabicMonthName(month)}_${year}.xlsx`,
-          sheets: [
-            {
-              name: 'الملخص المالي',
-              title: 'التقرير المالي الإجمالي للمنظومة',
-              subtitle: periodTitle,
-              columns: [
-                { header: 'البيان / المؤشر المالي', key: 'metric', width: 35, align: 'right', headerColor: 'FF047857' },
-                { header: 'المبلغ (جنيه مصري)', key: 'amount', width: 25, type: 'currency', align: 'center', headerColor: 'FF047857' }
-              ],
-              rows: [
-                { metric: 'إجمالي الإيرادات المجمعة', amount: monthlyData?.totals?.totalRevenue || 0 },
-                { metric: 'إجمالي المصروفات الشاملة', amount: monthlyData?.totals?.totalExpenses || 0 },
-                { metric: 'صافي الأرباح والإيرادات', amount: monthlyData?.totals?.netRevenue || 0 },
-                { metric: 'إجمالي سلف الموظفين', amount: monthlyData?.totals?.totalAdvances || 0 },
-                { metric: 'إجمالي المبالغ المتبقية للنزلاء', amount: monthlyData?.totals?.totalOutstanding || 0 }
-              ]
-            },
-            {
-              name: 'توزيع المصروفات',
-              title: 'تفاصيل المصروفات الشاملة حسب التصنيف',
-              subtitle: periodTitle,
-              columns: [
-                { header: 'التصنيف', key: 'name', width: 30, align: 'right', headerColor: 'FFB91C1C' },
-                { header: 'المبلغ الإجمالي (جنيه)', key: 'value', width: 25, type: 'currency', align: 'center', headerColor: 'FFB91C1C' }
-              ],
-              rows: (monthlyData?.categoryBreakdown || []).map(cat => ({
-                name: cat.name,
-                value: cat.value || 0
-              })),
-              summaryRow: {
-                name: 'إجمالي المصروفات:',
-                value: (monthlyData?.categoryBreakdown || []).reduce((s, c) => s + (c.value || 0), 0)
-              }
-            }
-          ]
+        const curBranch = branches.find(b => (b.id || b._id) === branchFilter) || { name: 'كافة الفروع' };
+        await exportComprehensiveClinicExcel({
+          month,
+          year,
+          branch: curBranch,
+          existingReport: monthlyData
         });
       } else {
         const rows = (outstandingData?.list || []).map(p => ({
@@ -106,6 +77,8 @@ export default function ReportsPage() {
       }
     } catch (err) {
       console.error('Failed to export styled excel', err);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -126,10 +99,20 @@ export default function ReportsPage() {
 
         <button
           onClick={handleExportExcel}
+          disabled={loadingMonthly || isExporting}
           className="mono-btn-primary text-sm shadow-md flex items-center gap-2"
         >
-          <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-          تصدير التقرير الحالي إلى Excel (.xlsx)
+          {isExporting ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin text-white" />
+              <span>جاري تجهيز Excel...</span>
+            </>
+          ) : (
+            <>
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <span>تصدير ملف Excel الشامل</span>
+            </>
+          )}
         </button>
       </div>
 
