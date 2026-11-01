@@ -25,6 +25,8 @@ export const reportsService = {
 
     return {
       totals: {
+        currentMonthStay: data.currentMonthStay ?? data.totalIncome ?? 0,
+        previousMonthNet: data.previousMonthNet || 0,
         totalRevenue: data.totalIncome || 0,
         totalExpenses: data.totalExpenses || 0,
         netRevenue: data.netIncome || 0,

@@ -199,11 +199,25 @@ export default function ReportsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             
-            <div className="mono-card p-5">
-              <span className="text-xs font-semibold text-zinc-400">إجمالي الإيرادات</span>
-              <div className="mt-3 text-xl font-black text-emerald-400">
-                {loadingMonthly ? '...' : formatCurrency(monthlyData?.totals?.totalRevenue || 0)}
+            <div className="mono-card p-5 flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-semibold text-zinc-400">إجمالي الإيرادات</span>
+                <div className="mt-3 text-xl font-black text-emerald-400">
+                  {loadingMonthly ? '...' : formatCurrency(monthlyData?.totals?.totalRevenue || 0)}
+                </div>
               </div>
+              {!loadingMonthly && (
+                <div className="mt-3 pt-2.5 border-t border-zinc-800 text-[11px] text-zinc-400 space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span>إيرادات إقامة الشهر الحالي:</span>
+                    <span className="font-semibold text-zinc-300 font-mono">{formatCurrency(monthlyData?.totals?.currentMonthStay || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-emerald-400">
+                    <span>+ صافي إيرادات شهر {getArabicMonthName(month === 1 ? 12 : month - 1)}:</span>
+                    <span className="font-bold font-mono">+{formatCurrency(monthlyData?.totals?.previousMonthNet || 0)}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="mono-card p-5">
@@ -214,7 +228,7 @@ export default function ReportsPage() {
             </div>
 
             <div className="mono-card p-5 border-zinc-700 bg-zinc-900">
-              <span className="text-xs font-semibold text-zinc-300">صافي الأرباح</span>
+              <span className="text-xs font-semibold text-zinc-300">صافي الإيرادات</span>
               <div className="mt-3 text-xl font-black text-white">
                 {loadingMonthly ? '...' : formatCurrency(monthlyData?.totals?.netRevenue || 0)}
               </div>
