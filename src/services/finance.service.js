@@ -149,7 +149,14 @@ export const financeService = {
       return sum + (paid - expenses);
     }, 0);
 
-    const calculatedTotalIncome = patients.length > 0 ? patientNetRevenueTotal : totalIncomeFromTx;
+    const calculatedTotalIncome = patients.length > 0
+      ? patients.reduce((sum, patient) => sum + Number(
+          patient.totalAccommodationValue ??
+          patient.accommodationAmount ??
+          patient.stayValue ??
+          0
+        ), 0)
+      : totalIncomeFromTx;
     const calculatedTotalExpenses = totalExpenses;
     const calculatedNetRevenue = calculatedTotalIncome - calculatedTotalExpenses;
 
